@@ -27,7 +27,7 @@ class Response
 
     @encode << "\r\n"
 
-    @encode << @headers.map { |key, value| "#{key}: #{value}" }.join("\r\n")
+    @encode << @headers.map { |key, value| "#{key}: #{value}\r\n" }.join
 
     @encode << "\r\n"
 

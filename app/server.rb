@@ -16,7 +16,6 @@ def start_connection(client_socket)
     next unless request
 
     res = process_request(request)
-    pp res.encode
     client_socket.puts(res.encode)
   rescue StandardError => e
     puts "Error reading from client socket #{e.message}"
