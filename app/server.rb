@@ -38,8 +38,13 @@ class Server
   end
 
   def process_request(req)
-    return Response.ok unless req.method == 'GET'
+    return process_get_request(req) if req.method == 'GET'
+    return process_post_request(req) if req.method == 'POST'
 
+    Response.ok
+  end
+
+  def process_get_request(req)
     if req.path == '/'
       Response.ok
     elsif req.path.start_with?('/echo')
@@ -48,6 +53,14 @@ class Server
       Response.new(200, req.user_agent)
     elsif req.path.start_with?('/files')
       files(req)
+    else
+      Response.not_found
+    end
+  end
+
+  def process_post_request(req)
+    if req.path.start_with?('/files')
+      write_file(req)
     else
       Response.not_found
     end
@@ -66,6 +79,13 @@ class Server
     return Response.not_found if !path || !File.exist?(path)
 
     Response.new(200, File.open(path))
+  end
+
+  def write_file(req)
+    _, name = req.path.split('/').map.drop(1)
+    path = File.join(@file_dir, name)
+    File.write(path, req.raw_body)
+    Response.new(201)
   end
 end
 

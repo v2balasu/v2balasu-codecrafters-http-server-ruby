@@ -24,6 +24,8 @@ class Response
     case @status_code
     when 200
       res_content << '200 OK'
+    when 201
+      res_content << '201 Created'
     when 404
       res_content << '404 Not Found'
     end

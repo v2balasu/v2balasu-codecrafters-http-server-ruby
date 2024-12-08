@@ -21,6 +21,7 @@ class Request
     method, path = request_line.split("\s").map(&:chomp)
 
     headers = {}
+    body = nil
 
     loop do
       line = socket.gets&.chomp
@@ -30,6 +31,11 @@ class Request
       headers[key] = value
     end
 
-    Request.new(method, path, headers, nil)
+    if headers['Content-Length']
+      body_length = headers['Content-Length'].to_i
+      body = socket.gets(body_length)
+    end
+
+    Request.new(method, path, headers, body)
   end
 end
