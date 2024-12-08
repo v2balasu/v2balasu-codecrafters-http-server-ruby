@@ -22,7 +22,7 @@ class Response
     when 200
       @encode << '200 OK'
     when 404
-      @encode << '404 NOT FOUND'
+      @encode << '404 Not Found'
     end
 
     @encode << "\r\n"
