@@ -1,3 +1,5 @@
+require_relative 'request'
+require_relative 'response'
 require 'socket'
 
 # You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -5,19 +7,17 @@ print('Logs from your program will appear here!')
 
 server = TCPServer.new('localhost', 4221)
 
-HTTP_METHOD_REGEX = /^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD|TRACE|CONNECT)/.freeze
-HTTP_RESPONSE_OK = "HTTP/1.1 200 OK\r\n\r\n".freeze
-HTTP_RESPONSE_NOT_FOUND = "HTTP/1.1 404 Not Found\r\n\r\n".freeze
-
 def start_connection(client_socket)
   # TODO: Timeout
   loop do
-    req = client_socket.gets
+    message = client_socket.gets&.chomp
+    request = Request.try_create(message)
 
-    if req&.match(HTTP_METHOD_REGEX)
-      res = process_request(req)
-      client_socket.puts(res)
-    end
+    next unless request
+
+    res = process_request(request)
+    pp res.encode
+    client_socket.puts(res.encode)
   rescue StandardError => e
     puts "Error reading from client socket #{e.message}"
     break
@@ -27,10 +27,21 @@ def start_connection(client_socket)
 end
 
 def process_request(req)
-  req_method, path = req.split("\s")
-  return HTTP_RESPONSE_OK unless req_method == 'GET'
+  return Response.ok unless req.method == 'GET'
 
-  path == '/' ? HTTP_RESPONSE_OK : HTTP_RESPONSE_NOT_FOUND
+  if req.path == '/'
+    Response.ok
+  elsif req.path.start_with?('/echo')
+    echo(req)
+  else
+    Response.not_found
+  end
+end
+
+def echo(req)
+  _, msg = req.path.split('/').map(&:chomp).drop(1)
+
+  Response.new(200, msg)
 end
 
 loop do
