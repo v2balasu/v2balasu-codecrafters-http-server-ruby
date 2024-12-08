@@ -15,7 +15,7 @@ class Request
   end
 
   def accept_encodings
-    @accept_encodings ||= @headers['Accept-Encoding']&.split(',') || []
+    @accept_encodings ||= @headers['Accept-Encoding']&.split(',')&.map(&:strip) || []
   end
 
   def self.try_create(socket)
