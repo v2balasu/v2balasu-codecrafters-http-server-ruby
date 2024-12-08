@@ -28,13 +28,17 @@ class Server
       next unless request
 
       res = process_request(request)
-      res.send(client_socket)
+      res.send(client_socket, response_encoding(request))
     rescue StandardError => e
       puts "Error reading from client socket #{e.message}"
       break
     end
 
     client_socket.close
+  end
+
+  def response_encoding(request)
+    request.accept_encodings.include?('gzip') ? :gzip : :identity
   end
 
   def process_request(req)

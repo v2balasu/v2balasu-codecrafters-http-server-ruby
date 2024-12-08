@@ -1,3 +1,5 @@
+require 'zlib'
+
 class Response
   attr_reader :status_code, :body
 
@@ -17,24 +19,60 @@ class Response
     end
   end
 
-  def send(socket)
-    res_content = 'HTTP/1.1 '
+  def send(socket, encoding)
+    return send_gzip(socket) if encoding == :gzip
+
+    send_identity(socket)
+  end
+
+  def self.ok
+    @ok ||= new(200)
+  end
+
+  def self.not_found
+    @not_found ||= new(404)
+  end
+
+  private
+
+  def response_content_meta
+    metadata = 'HTTP/1.1 '
 
     # TODO: Exhaustive list of status codes
     case @status_code
     when 200
-      res_content << '200 OK'
+      metadata << '200 OK'
     when 201
-      res_content << '201 Created'
+      metadata << '201 Created'
     when 404
-      res_content << '404 Not Found'
+      metadata << '404 Not Found'
     end
 
-    res_content << "\r\n"
+    metadata << "\r\n"
 
-    res_content << @headers.map { |key, value| "#{key}: #{value}\r\n" }.join
+    metadata << @headers.map { |key, value| "#{key}: #{value}\r\n" }.join
 
-    res_content << "\r\n"
+    metadata << "\r\n"
+
+    metadata
+  end
+
+  def send_gzip(socket)
+    @headers['Content-Encoding'] = 'gzip'
+
+    res_content = response_content_meta
+    socket.puts(res_content)
+    gzip_stream = Zlib::GzipWriter.new(socket)
+
+    if body.is_a?(File)
+      IO.copy_stream(body, gzip_stream)
+    else
+      gzip_stream.write(body)
+    end
+  end
+
+  def send_identity(socket)
+    res_content = response_content_meta
 
     if body.is_a?(File)
       socket.puts(res_content)
@@ -44,13 +82,5 @@ class Response
 
     res_content << body if body
     socket.puts(res_content)
-  end
-
-  def self.ok
-    @ok ||= new(200)
-  end
-
-  def self.not_found
-    @not_found ||= new(404)
   end
 end

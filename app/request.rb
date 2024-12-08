@@ -14,6 +14,10 @@ class Request
     @headers['User-Agent']
   end
 
+  def accept_encodings
+    @accept_encodings ||= @headers['Accept-Encoding']&.split(',') || []
+  end
+
   def self.try_create(socket)
     request_line = socket.gets
     return nil unless HTTP_METHOD_REGEX.match(request_line)
