@@ -66,6 +66,7 @@ class Response
 
     if body.is_a?(File)
       IO.copy_stream(body, gzip_stream)
+      body.close
     else
       gzip_stream.write(body)
     end
@@ -77,6 +78,7 @@ class Response
     if body.is_a?(File)
       socket.puts(res_content)
       IO.copy_stream(body, socket)
+      body.close
       return
     end
 
