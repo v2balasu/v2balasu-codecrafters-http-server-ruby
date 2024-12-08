@@ -1,3 +1,4 @@
+require 'stringio'
 require 'zlib'
 
 class Response
@@ -58,18 +59,24 @@ class Response
   end
 
   def send_gzip(socket)
+    gzip_stream = Zlib::GzipWriter.new(StringIO.new)
+    if body.is_a?(File)
+      IO.copy_stream(body, gzip_stream)
+      body.cose
+    elsif body
+      gzip_stream.write(body)
+    end
+
+    mem_stream = gzip_stream.finish
     @headers['Content-Encoding'] = 'gzip'
+    @headers['Content-Length'] = mem_stream.size
 
     res_content = response_content_meta
     socket.puts(res_content)
-    gzip_stream = Zlib::GzipWriter.new(socket)
 
-    if body.is_a?(File)
-      IO.copy_stream(body, gzip_stream)
-      body.close
-    else
-      gzip_stream.write(body)
-    end
+    mem_stream.rewind
+    IO.copy_stream(mem_stream, socket)
+    mem_stream.close
   end
 
   def send_identity(socket)
