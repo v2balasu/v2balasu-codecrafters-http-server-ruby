@@ -10,8 +10,7 @@ server = TCPServer.new('localhost', 4221)
 def start_connection(client_socket)
   # TODO: Timeout
   loop do
-    message = client_socket.gets&.chomp
-    request = Request.try_create(message)
+    request = Request.try_create(client_socket)
 
     next unless request
 
@@ -32,13 +31,15 @@ def process_request(req)
     Response.ok
   elsif req.path.start_with?('/echo')
     echo(req)
+  elsif req.path.start_with?('/user-agent')
+    Response.new(200, req.user_agent)
   else
     Response.not_found
   end
 end
 
 def echo(req)
-  _, msg = req.path.split('/').map(&:chomp).drop(1)
+  _, msg = req.path.split('/').map.drop(1)
 
   Response.new(200, msg)
 end

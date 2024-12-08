@@ -10,11 +10,26 @@ class Request
     @raw_body = raw_body
   end
 
-  def self.try_create(request_raw)
-    return nil unless HTTP_METHOD_REGEX.match(request_raw)
+  def user_agent
+    @headers['User-Agent']
+  end
 
-    method, path = request_raw.split("\s")
+  def self.try_create(socket)
+    request_line = socket.gets
+    return nil unless HTTP_METHOD_REGEX.match(request_line)
 
-    Request.new(method, path, [], request_raw)
+    method, path = request_line.split("\s").map(&:chomp)
+
+    headers = {}
+
+    loop do
+      line = socket.gets&.chomp
+      break if line.nil? || line == ''
+
+      key, value = line.split(':', 2).map(&:strip)
+      headers[key] = value
+    end
+
+    Request.new(method, path, headers, nil)
   end
 end
