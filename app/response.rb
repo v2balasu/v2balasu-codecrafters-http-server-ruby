@@ -8,32 +8,40 @@ class Response
 
     return unless body
 
-    @headers['Content-Type'] = 'text/plain'
-    @headers['Content-Length'] = body.bytes.length
+    if body.is_a?(String)
+      @headers['Content-Type'] = 'text/plain'
+      @headers['Content-Length'] = body.bytes.length
+    elsif body.is_a?(File)
+      @headers['Content-Type'] = 'application/octet-stream'
+      @headers['Content-Length'] = body.size
+    end
   end
 
-  def encode
-    return @encode if @encode
-
-    @encode = 'HTTP/1.1 '
+  def send(socket)
+    res_content = 'HTTP/1.1 '
 
     # TODO: Exhaustive list of status codes
     case @status_code
     when 200
-      @encode << '200 OK'
+      res_content << '200 OK'
     when 404
-      @encode << '404 Not Found'
+      res_content << '404 Not Found'
     end
 
-    @encode << "\r\n"
+    res_content << "\r\n"
 
-    @encode << @headers.map { |key, value| "#{key}: #{value}\r\n" }.join
+    res_content << @headers.map { |key, value| "#{key}: #{value}\r\n" }.join
 
-    @encode << "\r\n"
+    res_content << "\r\n"
 
-    @encode << body if @body
+    if body.is_a?(File)
+      socket.puts(res_content)
+      IO.copy_stream(body, socket)
+      return
+    end
 
-    @encode
+    res_content << body if body
+    socket.puts(res_content)
   end
 
   def self.ok

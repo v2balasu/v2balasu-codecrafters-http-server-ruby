@@ -1,51 +1,76 @@
 require_relative 'request'
 require_relative 'response'
 require 'socket'
+require 'optparse'
 
-# You can use print statements as follows for debugging, they'll be visible when running tests.
+class Server
+  def initialize(opts)
+    @file_dir = opts[:file_dir]
+  end
+
+  def start
+    server = TCPServer.new('localhost', 4221)
+
+    loop do
+      client_socket, _client_address = server.accept
+      # TODO: limit connections
+      Thread.new { start_connection(client_socket) }
+    end
+  end
+
+  private
+
+  def start_connection(client_socket)
+    # TODO: Timeout
+    loop do
+      request = Request.try_create(client_socket)
+
+      next unless request
+
+      res = process_request(request)
+      res.send(client_socket)
+    rescue StandardError => e
+      puts "Error reading from client socket #{e.message}"
+      break
+    end
+
+    client_socket.close
+  end
+
+  def process_request(req)
+    return Response.ok unless req.method == 'GET'
+
+    if req.path == '/'
+      Response.ok
+    elsif req.path.start_with?('/echo')
+      echo(req)
+    elsif req.path.start_with?('/user-agent')
+      Response.new(200, req.user_agent)
+    elsif req.path.start_with?('/files')
+      files(req)
+    else
+      Response.not_found
+    end
+  end
+
+  def echo(req)
+    _, msg = req.path.split('/').map.drop(1)
+
+    Response.new(200, msg)
+  end
+
+  def files(req)
+    _, name = req.path.split('/').map.drop(1)
+
+    path = @file_dir && name ? File.join(@file_dir, name) : nil
+    return Response.not_found if !path || !File.exist?(path)
+
+    Response.new(200, File.open(path))
+  end
+end
+
 print('Logs from your program will appear here!')
-
-server = TCPServer.new('localhost', 4221)
-
-def start_connection(client_socket)
-  # TODO: Timeout
-  loop do
-    request = Request.try_create(client_socket)
-
-    next unless request
-
-    res = process_request(request)
-    client_socket.puts(res.encode)
-  rescue StandardError => e
-    puts "Error reading from client socket #{e.message}"
-    break
-  end
-
-  client_socket.close
-end
-
-def process_request(req)
-  return Response.ok unless req.method == 'GET'
-
-  if req.path == '/'
-    Response.ok
-  elsif req.path.start_with?('/echo')
-    echo(req)
-  elsif req.path.start_with?('/user-agent')
-    Response.new(200, req.user_agent)
-  else
-    Response.not_found
-  end
-end
-
-def echo(req)
-  _, msg = req.path.split('/').map.drop(1)
-
-  Response.new(200, msg)
-end
-
-loop do
-  client_socket, _client_address = server.accept
-  # TODO: limit connections
-  Thread.new { start_connection(client_socket) }
-end
+options = {}
+key, value = ARGV
+options[:file_dir] = value if key == '--directory'
+Server.new(options).start
