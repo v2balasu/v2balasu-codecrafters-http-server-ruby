@@ -72,7 +72,7 @@ class Response
     @headers['Content-Length'] = mem_stream.size
 
     res_content = response_content_meta
-    socket.puts(res_content)
+    socket.print(res_content)
 
     mem_stream.rewind
     IO.copy_stream(mem_stream, socket)
@@ -83,13 +83,13 @@ class Response
     res_content = response_content_meta
 
     if body.is_a?(File)
-      socket.puts(res_content)
+      socket.print(res_content)
       IO.copy_stream(body, socket)
       body.close
       return
     end
 
     res_content << body if body
-    socket.puts(res_content)
+    socket.print(res_content)
   end
 end
