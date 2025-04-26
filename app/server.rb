@@ -13,6 +13,7 @@ class Server
 
     loop do
       client_socket, _client_address = server.accept
+      pp 'START CONNECTION'
       # TODO: limit connections
       Thread.new { start_connection(client_socket) }
     end

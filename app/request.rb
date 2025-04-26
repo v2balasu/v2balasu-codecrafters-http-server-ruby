@@ -32,7 +32,7 @@ class Request
       break if line.nil? || line == ''
 
       key, value = line.split(':', 2).map(&:strip)
-      headers[key] = value
+      headers[key] = value.strip
     end
 
     if headers['Content-Length']
