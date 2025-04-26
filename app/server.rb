@@ -29,6 +29,8 @@ class Server
 
       res = process_request(request)
       res.send(client_socket, response_encoding(request))
+
+      break if res.headers['Connection'] == 'close'
     rescue StandardError => e
       puts "Error reading from client socket #{e.message}"
       break
@@ -42,10 +44,16 @@ class Server
   end
 
   def process_request(req)
-    return process_get_request(req) if req.method == 'GET'
-    return process_post_request(req) if req.method == 'POST'
+    res = if req.method == 'GET'
+            process_get_request(req)
+          elsif req.method == 'POST'
+            process_post_request(req)
+          else
+            Response.ok
+          end
 
-    Response.ok
+    res.set_header('Connection', 'close') if req.headers['Connection'] == 'close'
+    res
   end
 
   def process_get_request(req)

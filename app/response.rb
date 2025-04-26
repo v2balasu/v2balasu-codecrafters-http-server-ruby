@@ -2,7 +2,7 @@ require 'stringio'
 require 'zlib'
 
 class Response
-  attr_reader :status_code, :body
+  attr_reader :status_code, :body, :headers
 
   def initialize(status_code, body = nil)
     @status_code = status_code
@@ -32,6 +32,10 @@ class Response
 
   def self.not_found
     @not_found ||= new(404)
+  end
+
+  def set_header(key, value)
+    @headers[key] = value
   end
 
   private
